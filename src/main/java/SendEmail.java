@@ -1,7 +1,4 @@
-import javax.mail.Message;
-import javax.mail.Multipart;
-import javax.mail.Session;
-import javax.mail.Transport;
+import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -27,8 +24,13 @@ public class SendEmail {
         properties.put("mail.user", correoEnvia);
         properties.put("mail.password", claveCorreo);
 
-         // Obtener la sesion
-        Session session = Session.getInstance(properties, null);
+        // Obtener la sesion
+        Session session = Session.getInstance(properties, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(correoEnvia, claveCorreo);
+            }
+        });
 
         try {
             // Crear el cuerpo del mensaje
@@ -39,31 +41,37 @@ public class SendEmail {
 
             // Los destinatarios
             InternetAddress[] internetAddresses = {
-                    new InternetAddress("agdopico28@gmail.com")};
+                    new InternetAddress("agdopico28@gmail.com")
+            };
 
             // Agregar los destinatarios al mensaje
-            mimeMessage.setRecipients(Message.RecipientType.TO,
-                    internetAddresses);
+            mimeMessage.setRecipients(Message.RecipientType.TO, internetAddresses);
 
             // Agregar el asunto al correo
-            mimeMessage.setSubject("Subject");
+            mimeMessage.setSubject("¡Bienvenido!");
 
-            // Creo la parte del mensaje
-            MimeBodyPart mimeBodyPart = new MimeBodyPart();
-            mimeBodyPart.setText("Body.");
+            // Crear la parte del mensaje HTML
+            MimeBodyPart htmlBodyPart = new MimeBodyPart();
+            String mensajeHTML = "<html><body><p>Bienvenido a nuestra aplicación</p>"
+                    + "<img src=\"cid:imagen_bienvenida\">"
+                    + "</body></html>";
+            htmlBodyPart.setContent(mensajeHTML, "text/html");
 
-            // Crear el multipart para agregar la parte del mensaje anterior
+            // Crear la parte del mensaje con la imagen adjunta
+            MimeBodyPart imageBodyPart = new MimeBodyPart();
+            imageBodyPart.attachFile("correo.jpg"); // Cambiar la ruta de la imagen
+            imageBodyPart.setContentID("<imagen_bienvenida>");
+
+            // Crear el multipart para agregar las partes del mensaje
             Multipart multipart = new MimeMultipart();
-            multipart.addBodyPart(mimeBodyPart);
+            multipart.addBodyPart(htmlBodyPart);
+            multipart.addBodyPart(imageBodyPart);
 
             // Agregar el multipart al cuerpo del mensaje
             mimeMessage.setContent(multipart);
 
             // Enviar el mensaje
-            Transport transport = session.getTransport("smtp");
-            transport.connect(correoEnvia, claveCorreo);
-            transport.sendMessage(mimeMessage, mimeMessage.getAllRecipients());
-            transport.close();
+            Transport.send(mimeMessage);
 
         } catch (Exception ex) {
             ex.printStackTrace();
